@@ -148,7 +148,7 @@ def visualizar_taxa_aprovacao_por_turma2(df_final, ano):
     # Gerar o gráfico e salvar como imagem
 
     G.layout(prog='dot')
-    G.draw('turma_{}_taxa_aprovacao.png'.format(ano))
+    G.draw('app/turma_{}_taxa_aprovacao.png'.format(ano))
 
     # Exibir a imagem gerada
     return True

@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import jsonify, send_file
 
 from app.utils.process_csv import process
 from app.utils.alunos import visualizar_taxa_aprovacao_por_turma2
@@ -81,10 +81,13 @@ import pygraphviz as pgv
 
 def process_csv():
     result = process()
-    visualizar_taxa_aprovacao_por_turma2(result, 2023)
+    result1 = visualizar_taxa_aprovacao_por_turma2(result, 2023)
+    
+    return send_file('turma_2023_taxa_aprovacao.png', mimetype='image/png')
 
     return jsonify({
         "message": "Process CSV!",
         "result": str(result),
+        "result1": str(result1),
         "status": "success"
     })
