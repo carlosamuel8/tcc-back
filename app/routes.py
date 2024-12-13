@@ -1,6 +1,8 @@
 from flask import jsonify, request
 from app import server
 
+from app.controllers.csv_processor import hello_world
+
 @server.route("/")
 def index():
   return "Hello World!"
@@ -23,4 +25,8 @@ def q_param():
     "message": "Param is: " + year,
     "status": "success"
   })
+
+@server.route('/hello', methods=['GET'])
+def hello():
+  return hello_world()
   
