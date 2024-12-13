@@ -8,3 +8,9 @@ Run the application localy:
 
 Backup the installed dependencies to requirenments.txt file:
 > pip freeze > requirements.txt
+
+Heroku logs:
+> heroku logs -n 1500
+
+Heroku bash:
+> heroku run bash
