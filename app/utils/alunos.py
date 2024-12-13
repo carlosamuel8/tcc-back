@@ -2,6 +2,7 @@ import pandas as pd
 import pygraphviz as pgv
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
+import os
 
 def calcular_taxa_aprovacao_primeira_vez(df_final, ano):
     """
@@ -145,7 +146,9 @@ def visualizar_taxa_aprovacao_por_turma2(df_final, ano):
 
 
     # Gerar o gráfico e salvar como imagem
-    G.layout(prog='dot')
+    DOT_PATH = os.environ.get('/app/.apt/usr/bin/dot')
+
+    G.layout(prog=DOT_PATH)
     G.draw('turma_{}_taxa_aprovacao.png'.format(ano))
 
     # Exibir a imagem gerada
