@@ -146,9 +146,8 @@ def visualizar_taxa_aprovacao_por_turma2(df_final, ano):
 
 
     # Gerar o gráfico e salvar como imagem
-    DOT_PATH = os.environ.get('/app/.apt/usr/bin/dot')
 
-    G.layout(prog=DOT_PATH)
+    G.layout(prog='dot')
     G.draw('turma_{}_taxa_aprovacao.png'.format(ano))
 
     # Exibir a imagem gerada
