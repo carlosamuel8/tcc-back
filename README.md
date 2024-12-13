@@ -5,3 +5,6 @@ Activate the application environment:
 
 Run the application localy:
 > flask run
+
+Backup the installed dependencies to requirenments.txt file:
+> pip freeze > requirements.txt
