@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 # instantiate the app
@@ -18,8 +18,18 @@ def ping_pong():
   response = {
     "message": "Pong!"
   }
-  return jsonify(response)
+  return jsonify({
+    "message": "Pong!",
+    "status": "success"
+  })
 
+@app.route('/q-param', methods=['GET'])
+def q_param():
+  year = request.args.get('year')
+  return jsonify({
+    "message": "Param is: " + year,
+    "status": "success"
+  })
 
 if __name__ == '__main__':
   app.run()
