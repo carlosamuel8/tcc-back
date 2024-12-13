@@ -1,5 +1,8 @@
 from flask import jsonify
 
+from app.utils.process_csv import process
+from app.utils.alunos import visualizar_taxa_aprovacao_por_turma2
+
 # -------------------------------------------------------------------------------------------
 # Importações básicas
 from pm4py.visualization.petri_net import visualizer as pn_visualizer
@@ -50,6 +53,7 @@ from pm4py.objects.petri_net.importer import importer as pnml_importer
 # Gerar imagem
 from pm4py.objects.petri_net.importer import importer as pnml_importer
 from pm4py.visualization.petri_net import visualizer as pn_visualizer
+import json
 
 def gen_image():
     netCC, initial_marking, final_marking = pnml_importer.apply("data/MODELAGEMCOMPLETACC_sem_reprovacoes.pnml")
@@ -64,5 +68,23 @@ def gen_image():
     # display(Image("/content/rede_petri.png"))
     return jsonify({
         "message": "Imagem FN!",
+        "netCC": str(netCC),
+        "initial_marking": str(initial_marking),
+        "final_marking": str(final_marking),
+        "status": "success"
+    })
+    
+# -------------------------------------------------------------------------------------------
+# Processar CSV
+
+import pygraphviz as pgv
+
+def process_csv():
+    result = process()
+    visualizar_taxa_aprovacao_por_turma2(result, 2023)
+
+    return jsonify({
+        "message": "Process CSV!",
+        "result": str(result),
         "status": "success"
     })

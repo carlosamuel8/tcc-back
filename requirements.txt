@@ -22,6 +22,7 @@ pandas==2.2.3
 pillow==11.0.0
 pm4py==2.7.12.4
 pydotplus==2.0.2
+pygraphviz==1.14
 pyparsing==3.2.0
 python-dateutil==2.9.0.post0
 pytz==2024.2
