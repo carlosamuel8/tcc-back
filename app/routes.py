@@ -2,6 +2,7 @@ from flask import jsonify, request
 from app import server
 
 from app.controllers.csv_processor import hello_world
+from app.controllers.visualizacao import gen_image
 
 @server.route("/")
 def index():
@@ -26,7 +27,7 @@ def q_param():
     "status": "success"
   })
 
-@server.route('/hello', methods=['GET'])
-def hello():
-  return hello_world()
+@server.route('/visualizacao/image', methods=['GET'])
+def visualizacao_image():
+  return gen_image()
   
