@@ -51,7 +51,7 @@ def calcular_taxa_aprovacao_primeira_vez(df_final, ano):
     return taxa_aprovacao, alunos_por_disciplina
 
 
-def visualizar_taxa_aprovacao_por_turma2(df_final, ano):
+def visualizar_taxa_aprovacao_por_turma2(df_final, ano, filename):
     """
     Função para visualizar a taxa de aprovação de uma turma de um determinado ano.
     O gráfico será colorido com base nas taxas de aprovação por disciplina e mostrará quantos alunos cursaram cada disciplina.
@@ -148,7 +148,7 @@ def visualizar_taxa_aprovacao_por_turma2(df_final, ano):
     # Gerar o gráfico e salvar como imagem
 
     G.layout(prog='dot')
-    G.draw('app/turma_{}_taxa_aprovacao.png'.format(ano))
+    G.draw('app/{}'.format(filename))
 
     # Exibir a imagem gerada
     return True
