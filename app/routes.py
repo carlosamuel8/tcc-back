@@ -9,6 +9,6 @@ def index():
 
 @server.route('/visualizacao/csv', methods=['GET'])
 def visualizacao_csv():
-  year = request.args.get('year')
+  year = int(request.args.get('year'))
   return generate_image(year)
   
