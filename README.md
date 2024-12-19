@@ -1,5 +1,8 @@
 # README
 
+Install Requirenments
+> pip install -r requirements.txt
+
 Activate the application environment:
 > source env/bin/activate
 
@@ -14,3 +17,8 @@ Heroku logs:
 
 Heroku bash:
 > heroku run bash
+
+## Windows
+
+> python -m virtualenv venv
+> venv\Scripts\activate
