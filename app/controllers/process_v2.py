@@ -1,7 +1,7 @@
 import pandas as pd
 from flask import send_file, jsonify
 
-from app.utils.new_image_generate import visualizar_taxa_aprovacao_por_turma2, analisar_turma
+from app.utils.new_image_generate import visualizar_taxa_aprovacao_por_turma2, analisar_turma, disciplinas_com_maior_gargalo, disciplinas_com_mais_supressoes
 
 def generate_image(selecao):
   if isinstance(selecao, (tuple, list)) and len(selecao) == 2:
@@ -31,11 +31,36 @@ def generate_image(selecao):
     return send_file(img_path, mimetype='image/png')
   except Exception as e:
     return str(e)
-  
-def controller_analise_turmas(selecao):
-  if selecao == "Todos as turmas" or selecao is None:
+
+def controller_tabelas(selecao):
+  if isinstance(selecao, (tuple, list)) and len(selecao) == 2:
+    faixa = list(selecao)  # Converte para lista, se necessário
+    ano = None
+  elif selecao == "Todos as turmas" or selecao is None:
+    faixa = None
     ano = None
   elif selecao.isnumeric():
+    faixa = None
     ano = int(selecao)
-  
-  return jsonify(analisar_turma(ano))
+  else:
+    raise ValueError("Seleção inválida. Deve ser um ano (int), faixa de anos (tuple/list) ou None (todos os anos).")
+
+  analise_turma_result = analisar_turma(ano)
+
+  df_gargalos = None
+  df_supressoes = None
+  if faixa:
+    df_gargalos = disciplinas_com_maior_gargalo(faixa)
+    df_supressoes = disciplinas_com_mais_supressoes(faixa)
+  elif ano:
+    df_gargalos = disciplinas_com_maior_gargalo(ano)
+    df_supressoes = disciplinas_com_mais_supressoes(ano)
+  else:
+    df_gargalos = disciplinas_com_maior_gargalo(None)
+    df_supressoes = disciplinas_com_mais_supressoes(None)
+
+  return ({
+    'analise_turma': analise_turma_result,
+    'disciplinas_com_maior_gargalo': df_gargalos,
+    'disciplinas_com_maior_supressoes': df_supressoes,
+  })

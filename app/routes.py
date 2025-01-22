@@ -3,7 +3,7 @@ from app import server
 
 from app.controllers.visualizacao import generate_image
 
-from app.controllers.process_v2 import generate_image as generate_image_v2, controller_analise_turmas
+from app.controllers.process_v2 import generate_image as generate_image_v2, controller_tabelas
 
 @server.route("/")
 def index():
@@ -21,9 +21,9 @@ def visualizacao_v2():
   
   return generate_image_v2(selecao)
 
-@server.route('/v2/visualizacao/analise_turmas', methods=['GET'])
+@server.route('/v2/visualizacao/tabelas', methods=['GET'])
 def analise_turmas():
   selecao = request.args.get('selecao')
   
-  return controller_analise_turmas(selecao)
+  return controller_tabelas(selecao)
   

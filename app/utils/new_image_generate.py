@@ -299,7 +299,7 @@ def disciplinas_com_maior_gargalo(selecao=None):
     # Reorganizar as colunas para que 'Nome' fique como a segunda
     gargalos_por_disciplina = gargalos_por_disciplina[['Código', 'Nome', 'Quantidade']]
 
-    return gargalos_por_disciplina.sort_values(by='Quantidade', ascending=False)
+    return gargalos_por_disciplina.values.tolist()
 
 
 def analisar_turma(ano_inicio=None):
@@ -344,7 +344,7 @@ def analisar_turma(ano_inicio=None):
 
     return resultado2
 
-def disciplinas_com_mais_supressoes(df_final, selecao=None):
+def disciplinas_com_mais_supressoes(selecao=None):
     """
     Identifica as disciplinas com maior número de supressões.
 
@@ -399,5 +399,5 @@ def disciplinas_com_mais_supressoes(df_final, selecao=None):
     supressoes_por_disciplina = supressoes_por_disciplina[['Código', 'Nome', 'Quantidade']]
 
     # Retornar a tabela ordenada por número de supressões
-    return supressoes_por_disciplina.sort_values(by='Quantidade', ascending=False)
+    return supressoes_por_disciplina.values.tolist()
 
