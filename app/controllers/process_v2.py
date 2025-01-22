@@ -1,7 +1,7 @@
-import pandas as pd
-from flask import send_file, jsonify
+from flask import send_file
+import json
 
-from app.utils.new_image_generate import visualizar_taxa_aprovacao_por_turma2, analisar_turma, disciplinas_com_maior_gargalo, disciplinas_com_mais_supressoes
+from app.utils.new_image_generate import visualizar_taxa_aprovacao_por_turma2, analisar_turma, consolidar_metricas
 
 def generate_image(selecao):
   if isinstance(selecao, (tuple, list)) and len(selecao) == 2:
@@ -47,20 +47,15 @@ def controller_tabelas(selecao):
 
   analise_turma_result = analisar_turma(ano)
 
-  df_gargalos = None
-  df_supressoes = None
+  df_consolidado = None
   if faixa:
-    df_gargalos = disciplinas_com_maior_gargalo(faixa)
-    df_supressoes = disciplinas_com_mais_supressoes(faixa)
+    df_consolidado = consolidar_metricas(faixa)
   elif ano:
-    df_gargalos = disciplinas_com_maior_gargalo(ano)
-    df_supressoes = disciplinas_com_mais_supressoes(ano)
+    df_consolidado = consolidar_metricas(ano)
   else:
-    df_gargalos = disciplinas_com_maior_gargalo(None)
-    df_supressoes = disciplinas_com_mais_supressoes(None)
+    df_consolidado = consolidar_metricas(None)
 
   return ({
     'analise_turma': analise_turma_result,
-    'disciplinas_com_maior_gargalo': df_gargalos,
-    'disciplinas_com_maior_supressoes': df_supressoes,
+    'df_consolidado': json.loads(df_consolidado),
   })

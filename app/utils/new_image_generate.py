@@ -86,10 +86,7 @@ def taxa_aprovacao_periodo(df_final, faixa_anos):
 
     return total_aprovacoes, total_alunos
 
-
-
-
-def calcular_taxa_aprovacao_primeira_vez(df_final, selecao):
+def calcular_taxa_aprovacao_primeira_vez(selecao):
     """
     Função para calcular a taxa de aprovação de cada disciplina com base em um ano específico, 
     uma faixa de anos ou todos os anos.
@@ -141,95 +138,6 @@ def calcular_taxa_aprovacao_primeira_vez(df_final, selecao):
     total_alunos = segunda_ocorrencia.groupby('disciplina')['id_discente'].nunique()
 
     return total_aprovacoes, total_alunos
-
-
-def visualizar_taxa_aprovacao_por_turma2(selecao=None):
-    """
-    Função para visualizar a taxa de aprovação de uma turma de um determinado ano, faixa de anos ou todos os anos.
-    """
-    if isinstance(selecao, int):  # Por turma
-        # print(f"Visualizando taxa de aprovação por turma para o ano {selecao}")
-        total_aprovacoes, alunos_por_disciplina = calcular_taxa_aprovacao_primeira_vez(df_final, selecao)
-    elif isinstance(selecao, list) and len(selecao) == 2:  # Por período
-        # print(f"Visualizando taxa de aprovação por período: {selecao}")
-        total_aprovacoes, alunos_por_disciplina = taxa_aprovacao_periodo(df_final, selecao)
-    elif selecao is None:  # Para todas as turmas
-        # print("Visualizando taxa de aprovação para todas as turmas.")
-        total_aprovacoes, alunos_por_disciplina = calcular_taxa_aprovacao_primeira_vez(df_final, None)
-    else:
-        raise ValueError("Seleção inválida. Deve ser um ano (int), faixa de anos (list) ou None (todos os anos).")
-
-    # Calcular a taxa de aprovação
-    taxa_aprovacao = (total_aprovacoes / alunos_por_disciplina).fillna(0)
-    
-    # Disciplinas organizadas por blocos
-    disciplinas = [
-        ["QXD0001", "QXD0108", "QXD0005", "QXD0109", "QXD0103", "QXD0056"],
-        ["QXD0007", "QXD0010", "QXD0013", "QXD0006", "QXD0008"],
-        ["QXD0115", "QXD0017", "QXD0114", "QXD0012", "QXD0040"],
-        ["QXD0011", "QXD0014", "QXD0016", "QXD0041", "QXD0116"],
-        ["QXD0020", "QXD0021", "QXD0025", "QXD0119", "QXD0120"],
-        ["QXD0019", "QXD0037", "QXD0038", "QXD0043", "QXD0046"],
-        ["QXD0029", "QXD0110"],
-    ]
-
-    transicoes = {
-        "QXD0001": ["QXD0007", "QXD0010"],
-        "QXD0005": ["QXD0013"],
-        "QXD0056": ["QXD0008", "QXD0012"],
-        "QXD0109": ["QXD0006"],
-        "QXD0007": ["QXD0016", "QXD0020", "QXD0014", "QXD0019"],
-        "QXD0010": ["QXD0115", "QXD0041"],
-        "QXD0008": ["QXD0040", "QXD0041"],
-        "QXD0013": ["QXD0043"],
-        "QXD0116": ["QXD0119", "QXD0120"],
-        "QXD0046": ["QXD0110"],
-    }
-
-    # Criar o gráfico
-    G = pgv.AGraph(strict=False, directed=True, rankdir='TB')
-    G.graph_attr['splines'] = 'ortho'
-    G.graph_attr['nodesep'] = '0.6'
-    G.graph_attr['ranksep'] = '0.7'
-
-    subgraphs = []
-    cmap = plt.get_cmap("RdYlGn")
-    norm = mcolors.Normalize(vmin=0, vmax=1)
-
-    for i, linha in enumerate(disciplinas):
-        with G.subgraph(name="cluster_" + str(i)) as s:
-            s.graph_attr['rank'] = 'same'
-            s.graph_attr['color'] = 'transparent'
-            for disciplina in linha:
-                taxa = taxa_aprovacao.get(disciplina, 0)
-                alunos_count = alunos_por_disciplina.get(disciplina, 0)
-                cor = mcolors.to_hex(cmap(norm(taxa)))
-                nome_disciplina = codigo_para_nome.get(disciplina, "Desconhecido")
-                label = f"{disciplina} \n {nome_disciplina}\n{alunos_count} alunos\n{taxa*100:.2f}%"
-                s.add_node(disciplina, shape='box', style='filled', fillcolor=cor, fontsize=15,
-                           label=label, fixedsize=True, width=2.5, height=1.4)
-            subgraphs.append(s)
-
-    # Adicionar transições (arestas)
-    for origem, destinos in transicoes.items():
-        for destino in destinos:
-            G.add_edge(origem, destino, directed=True, arrowhead='normal', constraint=False)
-
-    # Adicionar arestas invisíveis para alinhar blocos
-    for i in range(len(subgraphs) - 1):
-        node1 = list(subgraphs[i].nodes())[0]
-        node2 = list(subgraphs[i + 1].nodes())[0]
-        G.add_edge(node1, node2, style='invis', weight=10)
-
-    if isinstance(selecao, (list, tuple)) and len(selecao) == 2:
-        nome_arquivo = f"turma_{selecao[0]}_{selecao[1]}_taxa_aprovacao.png"
-    elif isinstance(selecao, int):
-        nome_arquivo = f"turma_{selecao}_taxa_aprovacao.png"
-    else:
-        nome_arquivo = "turma_todos_os_anos_taxa_aprovacao.png"
-
-    G.layout(prog='dot')
-    G.draw('app/images/{}'.format(nome_arquivo))
 
 def disciplinas_com_maior_gargalo(selecao=None):
     """
@@ -299,7 +207,7 @@ def disciplinas_com_maior_gargalo(selecao=None):
     # Reorganizar as colunas para que 'Nome' fique como a segunda
     gargalos_por_disciplina = gargalos_por_disciplina[['Código', 'Nome', 'Quantidade']]
 
-    return gargalos_por_disciplina.values.tolist()
+    return gargalos_por_disciplina
 
 
 def analisar_turma(ano_inicio=None):
@@ -399,5 +307,121 @@ def disciplinas_com_mais_supressoes(selecao=None):
     supressoes_por_disciplina = supressoes_por_disciplina[['Código', 'Nome', 'Quantidade']]
 
     # Retornar a tabela ordenada por número de supressões
-    return supressoes_por_disciplina.values.tolist()
+    return supressoes_por_disciplina
 
+
+def disciplinas_com_mais_trancamentos(selecao=None):
+    """
+    Identifica as disciplinas com maior número de trancamentos.
+
+    Parâmetros:
+    - df_final: DataFrame com os dados dos alunos e disciplinas.
+    - selecao: Pode ser:
+        * Um ano específico (int) -> Visualização por turma (alunos que iniciaram no ano).
+        * Uma faixa de anos (list) -> Visualização por período (trancamentos ocorridos no período).
+        * None -> Todos os anos.
+
+    Retorno:
+    - DataFrame: Disciplinas com trancamentos, nomes e quantidade em ordem decrescente.
+    """
+
+    # Filtrar apenas os registros com trancamentos
+    trancamentos = df_final[df_final['codigo'].str.contains('_TRANCADO', na=False)].copy()
+
+    # Criar uma nova coluna para extrair o código da disciplina
+    trancamentos['Código'] = trancamentos['codigo'].str.split('_').str[0]
+
+    # Filtrar conforme o parâmetro `selecao`
+    if selecao is not None:
+        if isinstance(selecao, int):
+            # Filtrar por ano específico (turma)
+            alunos_iniciaram = df_final[
+                (df_final['codigo'] == 'Iniciou') & 
+                (df_final['timestamp'].dt.year == selecao)
+            ]['id_discente'].unique()
+            trancamentos = trancamentos[trancamentos['id_discente'].isin(alunos_iniciaram)]
+
+        elif isinstance(selecao, list) and len(selecao) == 2:
+            # Filtrar por faixa de anos (período)
+            ano_inicio, ano_fim = selecao
+            trancamentos = trancamentos[trancamentos['timestamp'].dt.year.between(ano_inicio, ano_fim)]
+
+        else:
+            raise ValueError(
+                "Selecao deve ser None, um inteiro (ano específico), ou uma lista com dois elementos [ano_inicio, ano_fim]."
+            )
+
+    # Contar os trancamentos por disciplina
+    if trancamentos.empty:
+        return pd.DataFrame(columns=['Código', 'Nome', 'Quantidade'])
+
+    trancamentos_por_disciplina = trancamentos['Código'].value_counts().reset_index()
+    trancamentos_por_disciplina.columns = ['Código', 'Quantidade']
+
+    # Adicionar a coluna 'Nome' com base no mapeamento
+    trancamentos_por_disciplina['Nome'] = trancamentos_por_disciplina['Código'].map(codigo_para_nome)
+
+    # Reorganizar as colunas para que 'Nome' fique no meio
+    trancamentos_por_disciplina = trancamentos_por_disciplina[['Código', 'Nome', 'Quantidade']]
+
+    # Retornar a tabela ordenada por número de trancamentos
+    return trancamentos_por_disciplina.sort_values(by='Quantidade', ascending=False)
+
+
+def consolidar_metricas(selecao=None):
+    """
+    Consolida as métricas de gargalo, taxa de aprovação, supressões e trancamentos em uma única tabela.
+
+    Parâmetros:
+    - df_final: DataFrame com os dados de disciplinas e alunos.
+    - selecao: Ano específico (int), faixa de anos (list) ou None (todos os anos).
+
+    Retorno:
+    - DataFrame consolidado com as colunas:
+        - Código: Código da disciplina.
+        - Nome: Nome da disciplina.
+        - Gargalo: Número de alunos que enfrentaram gargalos (inteiro).
+        - Taxa de Aprovação (%): Porcentagem de aprovação (2 casas decimais).
+        - Supressões: Número de supressões na disciplina (inteiro).
+        - Trancamentos: Número de trancamentos na disciplina (inteiro).
+    """
+    
+    # Calcular métricas individuais
+    gargalos_por_disciplina = disciplinas_com_maior_gargalo(selecao)
+    supressoes_por_disciplina = disciplinas_com_mais_supressoes(selecao)
+    trancamentos_por_disciplina = disciplinas_com_mais_trancamentos(selecao)
+    total_aprovacoes, alunos_por_disciplina = calcular_taxa_aprovacao_primeira_vez(selecao)
+
+    # Taxa de aprovação em porcentagem
+    taxa_aprovacao = ((total_aprovacoes / alunos_por_disciplina) * 100).fillna(0).reset_index()
+    taxa_aprovacao.columns = ['Código', 'Taxa de Aprovação (%)']
+
+    # Garantir que a coluna Nome esteja em todos os DataFrames
+    gargalos_por_disciplina = gargalos_por_disciplina.rename(columns={'Quantidade': 'Gargalo'})
+    supressoes_por_disciplina = supressoes_por_disciplina.rename(columns={'Quantidade': 'Supressões'})
+    trancamentos_por_disciplina = trancamentos_por_disciplina.rename(columns={'Quantidade': 'Trancamentos'})
+
+    # Criar a coluna Nome com base no mapeamento, se necessário
+    gargalos_por_disciplina['Nome'] = gargalos_por_disciplina['Código'].map(codigo_para_nome)
+    supressoes_por_disciplina['Nome'] = supressoes_por_disciplina['Código'].map(codigo_para_nome)
+    trancamentos_por_disciplina['Nome'] = trancamentos_por_disciplina['Código'].map(codigo_para_nome)
+    taxa_aprovacao['Nome'] = taxa_aprovacao['Código'].map(codigo_para_nome)
+
+    # Mesclar os resultados em uma única tabela
+    consolidado = pd.merge(gargalos_por_disciplina, taxa_aprovacao, on=['Código', 'Nome'], how='outer')
+    consolidado = pd.merge(consolidado, supressoes_por_disciplina, on=['Código', 'Nome'], how='outer')
+    consolidado = pd.merge(consolidado, trancamentos_por_disciplina, on=['Código', 'Nome'], how='outer')
+
+    # Preencher valores NaN com 0 (para disciplinas sem dados em alguma métrica)
+    consolidado = consolidado.fillna(0)
+
+    # Garantir tipos adequados para cada coluna
+    consolidado['Gargalo'] = consolidado['Gargalo'].astype(int)
+    consolidado['Supressões'] = consolidado['Supressões'].astype(int)
+    consolidado['Trancamentos'] = consolidado['Trancamentos'].astype(int)
+    consolidado['Taxa de Aprovação (%)'] = consolidado['Taxa de Aprovação (%)'].round(2)
+
+    # Reordenar as colunas
+    consolidado = consolidado[['Código', 'Nome', 'Gargalo', 'Taxa de Aprovação (%)', 'Supressões', 'Trancamentos']]
+
+    return consolidado.to_json(orient='records')
