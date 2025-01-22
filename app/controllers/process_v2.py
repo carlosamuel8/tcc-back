@@ -3,7 +3,7 @@ import json
 
 from app.utils.new_image_generate import visualizar_disciplinas_por_metrica, analisar_turma, consolidar_metricas
 
-def generate_image(selecao):
+def generate_image(selecao, tipo_visualizacao):
   if isinstance(selecao, (tuple, list)) and len(selecao) == 2:
     faixa = list(selecao)  # Converte para lista, se necessário
     ano = None
@@ -18,18 +18,18 @@ def generate_image(selecao):
   
   try:
     if faixa:
-      image_name = visualizar_disciplinas_por_metrica(faixa)
+      image_name = visualizar_disciplinas_por_metrica(faixa, tipo_visualizacao)
     elif ano:
-      image_name = visualizar_disciplinas_por_metrica(ano)
+      image_name = visualizar_disciplinas_por_metrica(ano, tipo_visualizacao)
     else:
-      image_name = visualizar_disciplinas_por_metrica(None)
+      image_name = visualizar_disciplinas_por_metrica(None, tipo_visualizacao)
 
     img_path = f'images/{image_name}'
 
     # Exibir imagem
     return send_file(img_path, mimetype='image/png')
   except Exception as e:
-    return str(e)
+    return str('e')
 
 def controller_tabelas(selecao):
   if isinstance(selecao, (tuple, list)) and len(selecao) == 2:

@@ -284,8 +284,10 @@ def disciplinas_com_mais_supressoes(selecao=None):
             supressoes = supressoes[supressoes['id_discente'].isin(alunos_iniciaram)]
 
         elif isinstance(selecao, list) and len(selecao) == 2:
+            print('aqui3')
             # Filtrar por faixa de anos (período)
             ano_inicio, ano_fim = selecao
+            print(ano_inicio, ano_fim)
             supressoes = supressoes[supressoes['timestamp'].dt.year.between(ano_inicio, ano_fim)]
 
         else:
@@ -464,7 +466,9 @@ def visualizar_disciplinas_por_metrica(
                 index=gargalos_por_disciplina['Código']
             )
         elif tipo_visualizacao == "supressao":
+            print('aqui')
             supressoes_por_disciplina = disciplinas_com_mais_supressoes(selecao)
+            print('aqui2')
             valores = pd.Series(
                 supressoes_por_disciplina['Quantidade'].values,
                 index=supressoes_por_disciplina['Código']
