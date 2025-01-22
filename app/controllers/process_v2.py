@@ -1,7 +1,7 @@
 from flask import send_file
 import json
 
-from app.utils.new_image_generate import visualizar_taxa_aprovacao_por_turma2, analisar_turma, consolidar_metricas
+from app.utils.new_image_generate import visualizar_disciplinas_por_metrica, analisar_turma, consolidar_metricas
 
 def generate_image(selecao):
   if isinstance(selecao, (tuple, list)) and len(selecao) == 2:
@@ -18,14 +18,13 @@ def generate_image(selecao):
   
   try:
     if faixa:
-      visualizar_taxa_aprovacao_por_turma2(faixa)
-      img_path = f'images/turma_{faixa[0]}_{faixa[1]}_taxa_aprovacao.png'
+      image_name = visualizar_disciplinas_por_metrica(faixa)
     elif ano:
-      visualizar_taxa_aprovacao_por_turma2(ano)
-      img_path = f'images/turma_{ano}_taxa_aprovacao.png'
+      image_name = visualizar_disciplinas_por_metrica(ano)
     else:
-      visualizar_taxa_aprovacao_por_turma2(None)
-      img_path = 'images/turma_todos_os_anos_taxa_aprovacao.png'
+      image_name = visualizar_disciplinas_por_metrica(None)
+
+    img_path = f'images/{image_name}'
 
     # Exibir imagem
     return send_file(img_path, mimetype='image/png')

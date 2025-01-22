@@ -53,7 +53,7 @@ codigo_para_nome = {
     "QXD0029": "Empreendedorismo",
 }
 
-def taxa_aprovacao_periodo(df_final, faixa_anos):
+def taxa_aprovacao_periodo(faixa_anos):
     """
     Calcula a taxa de aprovação de cada disciplina para um intervalo de anos ou um ano específico.
 
@@ -425,3 +425,127 @@ def consolidar_metricas(selecao=None):
     consolidado = consolidado[['Código', 'Nome', 'Gargalo', 'Taxa de Aprovação (%)', 'Supressões', 'Trancamentos']]
 
     return consolidado.to_json(orient='records')
+
+class ReverseNormalize(mcolors.Normalize):
+    """Normalizador para inverter o mapeamento de cores."""
+    def __call__(self, value, clip=None):
+        # Inverte o mapeamento de valores
+        normalized = super().__call__(value, clip)
+        return 1 - normalized
+
+
+def visualizar_disciplinas_por_metrica(
+    selecao=None,
+    tipo_visualizacao="taxa_aprovacao",
+    cmap_nome="RdYlGn",
+):
+    """
+    Função genérica para visualizar disciplinas com base em métricas, como taxa de aprovação, gargalo ou supressão.
+
+    Parâmetros:
+    - selecao: Ano, faixa de anos ou None (todos os anos).
+    - tipo_visualizacao: "taxa_aprovacao", "gargalo" ou "supressao".
+    - cmap_nome: Nome do colormap a ser usado.
+    - titulo: Título do gráfico.
+    """
+    if tipo_visualizacao == "taxa_aprovacao":
+        if isinstance(selecao, list) and len(selecao) == 2:  # Por período
+            total_aprovacoes, alunos_por_disciplina = taxa_aprovacao_periodo(selecao)
+            valores = (total_aprovacoes / alunos_por_disciplina).fillna(0)  # Taxa de aprovação
+        else:
+            total_aprovacoes, alunos_por_disciplina = calcular_taxa_aprovacao_primeira_vez(selecao)
+            valores = (total_aprovacoes / alunos_por_disciplina).fillna(0)  # Taxa de aprovação
+        norm = mcolors.Normalize(vmin=valores.min(), vmax=valores.max())
+    elif tipo_visualizacao in ["gargalo", "supressao"]:
+        if tipo_visualizacao == "gargalo":
+            gargalos_por_disciplina = disciplinas_com_maior_gargalo(selecao)
+            valores = pd.Series(
+                gargalos_por_disciplina['Quantidade'].values,
+                index=gargalos_por_disciplina['Código']
+            )
+        elif tipo_visualizacao == "supressao":
+            supressoes_por_disciplina = disciplinas_com_mais_supressoes(selecao)
+            valores = pd.Series(
+                supressoes_por_disciplina['Quantidade'].values,
+                index=supressoes_por_disciplina['Código']
+            )
+        # Normalização inversa para "gargalo" e "supressão"
+        norm = ReverseNormalize(vmin=valores.min(), vmax=valores.max())
+    else:
+        raise ValueError("Tipo de visualização inválido. Use 'taxa_aprovacao', 'gargalo' ou 'supressao'.")
+
+    # Configuração do colormap
+    cmap = plt.get_cmap(cmap_nome)
+
+    # Disciplinas organizadas por blocos
+    disciplinas = [
+        ["QXD0001", "QXD0108", "QXD0005", "QXD0109", "QXD0103", "QXD0056"],
+        ["QXD0007", "QXD0010", "QXD0013", "QXD0006", "QXD0008"],
+        ["QXD0115", "QXD0017", "QXD0114", "QXD0012", "QXD0040"],
+        ["QXD0011", "QXD0014", "QXD0016", "QXD0041", "QXD0116"],
+        ["QXD0020", "QXD0021", "QXD0025", "QXD0119", "QXD0120"],
+        ["QXD0019", "QXD0037", "QXD0038", "QXD0043", "QXD0046"],
+        ["QXD0029", "QXD0110"],
+    ]
+
+    transicoes = {
+        "QXD0001": ["QXD0007", "QXD0010"],
+        "QXD0005": ["QXD0013"],
+        "QXD0056": ["QXD0008", "QXD0012"],
+        "QXD0109": ["QXD0006"],
+        "QXD0007": ["QXD0016", "QXD0020", "QXD0014", "QXD0019"],
+        "QXD0010": ["QXD0115", "QXD0041"],
+        "QXD0008": ["QXD0040", "QXD0041"],
+        "QXD0013": ["QXD0043"],
+        "QXD0116": ["QXD0119", "QXD0120"],
+        "QXD0046": ["QXD0110"],
+    }
+
+    # Criar o gráfico
+    G = pgv.AGraph(strict=False, directed=True, rankdir='TB')
+    G.graph_attr['splines'] = 'ortho'
+    G.graph_attr['nodesep'] = '0.6'
+    G.graph_attr['ranksep'] = '0.7'
+
+    subgraphs = []
+    for i, linha in enumerate(disciplinas):
+        with G.subgraph(name="cluster_" + str(i)) as s:
+            s.graph_attr['rank'] = 'same'
+            s.graph_attr['color'] = 'transparent'
+            for disciplina in linha:
+                valor = valores.get(disciplina, 0)
+                cor = mcolors.to_hex(cmap(norm(valor)))
+                nome_disciplina = codigo_para_nome.get(disciplina, "Desconhecido")
+                if tipo_visualizacao == "taxa_aprovacao":
+                    label = f"{disciplina} \n {nome_disciplina}\n{valor*100:.2f}%"
+                elif tipo_visualizacao == "gargalo":
+                    label = f"{disciplina} \n {nome_disciplina}\n{int(valor)} alunos"
+                elif tipo_visualizacao == "supressao":
+                    label = f"{disciplina} \n {nome_disciplina}\n{int(valor)} supressões"
+                s.add_node(disciplina, shape='box', style='filled', fillcolor=cor, fontsize=15,
+                           label=label, fixedsize=True, width=2.5, height=1.4)
+            subgraphs.append(s)
+
+    # Adicionar transições (arestas)
+    for origem, destinos in transicoes.items():
+        for destino in destinos:
+            G.add_edge(origem, destino, directed=True, arrowhead='normal', constraint=False)
+
+    # Adicionar arestas invisíveis para alinhar blocos
+    for i in range(len(subgraphs) - 1):
+        node1 = list(subgraphs[i].nodes())[0]
+        node2 = list(subgraphs[i + 1].nodes())[0]
+        G.add_edge(node1, node2, style='invis', weight=10)
+
+    # Nome do arquivo
+    if isinstance(selecao, (list, tuple)) and len(selecao) == 2:
+        nome_arquivo = f"visualizacao_{tipo_visualizacao}_{selecao[0]}_{selecao[1]}.png"
+    elif isinstance(selecao, int):
+        nome_arquivo = f"visualizacao_{tipo_visualizacao}_{selecao}.png"
+    else:
+        nome_arquivo = f"visualizacao_{tipo_visualizacao}_todos_os_anos.png"
+
+    G.layout(prog='dot')
+    G.draw('app/images/{}'.format(nome_arquivo))
+
+    return nome_arquivo
