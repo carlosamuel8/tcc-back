@@ -22,3 +22,7 @@ Heroku bash:
 
 > python -m virtualenv venv
 > venv\Scripts\activate
+
+Run app:
+> set FLASK_APP=run.py
+> flask run
