@@ -10,39 +10,38 @@ import pygraphviz as pgv
 
 
 codigo_para_nome = {
-    "QXD0001": "Fund. de Programação",
 
     "QXD0001": "Fund. de Programação",
     "QXD0108": "Introdução à CC", 
-    "QXD0005": "Arquitet. de Computadores", 
-    "QXD0056": "Matemática Básica",
+    "QXD0005": "Arq. de Computadores", 
+    "QXD0056": "Matem. Básica",
     "QXD0109": "Pré-Cálculo", 
-    "QXD0103": "Ética, Direito e Legislação",
+    "QXD0103": "Ética, Dir. e Legislação",
 
     
-    "QXD0007": "Program. Orient. a Objetos",
-    "QXD0010": "Estrutura de dados",
-    "QXD0008": "Matemática Discreta",
-    "QXD0006": "Cálc. Diferencial e Integral I",
-    "QXD0013": "Sistemas Operacionais",
+    "QXD0007": "Program. Orient. a Objet.",
+    "QXD0010": "Estrut. de dados",
+    "QXD0008": "Matem. Discreta",
+    "QXD0006": "Cálc. Difer. e Integ. I",
+    "QXD0013": "Sist. Operacionais",
     
     
     "QXD0114": "Program. Funcional",
-    "QXD0115": "Estrutura de Dados Avanç.",
-    "QXD0040": "Ling. Formais e Autômatos",
-    "QXD0017": "Lógica para Computação",
-    "QXD0012": "Probabilidade de Estatística",
+    "QXD0115": "Estrut. de Dados Avanç.",
+    "QXD0040": "Ling. Form. e Autômatos",
+    "QXD0017": "Lógica p/ Computação",
+    "QXD0012": "Probab. de Estatística",
 
-    "QXD0016": "Linguagens de Program.",
-    "QXD0041": "Proj. e Análise de Algoritmo",
+    "QXD0016": "Ling. de Programação",
+    "QXD0041": "Proj. e Anál. de Algorit.",
     "QXD0011": "Fund. de Banco de Dados",
-    "QXD0014": "Análise e Proj. de Sistemas",
+    "QXD0014": "Análise e Proj. de Sist.",
     "QXD0116": "Álgebra Linear",
 
 
-    "QXD0020": "Desenv. de Software p/ Web",
+    "QXD0020": "Des. de Software p/ Web",
     "QXD0119": "Computação Gráfica",
-    "QXD0120": "Matemática Computacional",
+    "QXD0120": "Matem. Computacional",
     "QXD0025": "Compiladores",
     "QXD0021": "Redes de Computadores",
 
@@ -204,8 +203,18 @@ def visualizar_fluxograma_tokens(
                     disciplina, "Desconhecido")  # Obter nome da disciplina
                 label = f"{disciplina}\n{nome_disciplina}\nTokens: {
                     tokens}"  # Exibir código, nome e tokens
-                s.add_node(disciplina, shape='box', style='filled', fillcolor=cor, fontsize=15,
-                           label=label, fixedsize=True, width=2.5, height=1.4)
+                s.add_node(
+                    disciplina,
+                    shape='box',
+                    style='filled',
+                    fillcolor=cor,
+                    fontsize=19,  # Font size padrão para fallback
+                    fontname='Arial',  # Fonte principal
+                    label=label,  # Label formatado com HTML-like
+                    fixedsize=True,
+                    width=3,
+                    height=1.8
+                )
             subgraphs.append(s)
 
     # Adicionar transições (arestas)
