@@ -1,140 +1,94 @@
-from flask import jsonify
-import pandas as pd
 from datetime import datetime
+import pandas as pd
 
-def criar_timestamp(row):
-  if row['periodo'] == 1:
-    return f"01/02/{row['ano']}"
-  elif row['periodo'] == 2:
-    return f"01/08/{row['ano']}"
-  
-def ajustar_timestamp(ts):
-  # Converte a string para um objeto datetime
-  data = datetime.strptime(ts, "%d/%m/%Y")
-  # Se for fevereiro, mudar para junho
-  if data.month == 2:
-    data = data.replace(month=6)
-  # Se for agosto, mudar para dezembro
-  elif data.month == 8:
-    data = data.replace(month=12)
-  return data.strftime("%d/%m/%Y")
+def processar_csv(df):
+    """
+    Processa um DataFrame contendo dados acadêmicos, aplicando as transformações necessárias:
+    - Remove duplicatas e filtra dados irrelevantes.
+    - Ajusta códigos de disciplinas e resultados.
+    - Cria colunas de timestamp e activity.
+    - Adiciona eventos "Iniciou" e "Verificador".
 
-# Função para adicionar 1 dia a uma data
-def adicionar_um_dia(data_str):
-    dia, mes, ano = map(int, data_str.split('/'))
-    if dia < 28:
-      dia += 1
-    else:
-      # Verificar o número de dias no mês
-      if mes == 2:  # Fevereiro
-        dia = 1 if dia == 28 else dia + 1
-        if dia == 1:
-          mes += 1
-      elif mes in [4, 6, 9, 11]:  # Abril, Junho, Setembro, Novembro
-        dia = 1 if dia == 30 else dia + 1
-        if dia == 1:
-          mes += 1
-      else:  # Janeiro, Março, Maio, Julho, Agosto, Outubro, Dezembro
-        dia = 1 if dia == 31 else dia + 1
-        if dia == 1:
-          mes = 1 if mes == 12 else mes + 1
-          ano += 1 if mes == 1 else 0
-    return f"{dia:02d}/{mes:02d}/{ano}"
+    Parâmetros:
+        df (pd.DataFrame): DataFrame original com os dados acadêmicos.
+    
+    Retorna:
+        pd.DataFrame: DataFrame transformado.
+    """
+    # Remover duplicatas
+    df = df.drop_duplicates()
 
-def process():
-  data = pd.read_csv('data/dados_CC_ORIGINAL.csv')
-  df = pd.DataFrame(data)
-  df = df.drop_duplicates()
-  df['ano'] = pd.to_numeric(df['ano'], errors='coerce')
-  df_filtrado = df[df['ano'] < 2024]
-  
-  codigos_filtrar = [
-    "QXD0001", "QXD0005", "QXD0056", "QXD0103", "QXD0108", "QXD0109",
-    "QXD0006", "QXD0007", "QXD0008", "QXD0010", "QXD0013",
-    "QXD0012", "QXD0017", "QXD0040", "QXD0114", "QXD0115",
-    "QXD0011", "QXD0014", "QXD0016", "QXD0041", "QXD0116",
-    "QXD0020", "QXD0021", "QXD0025", "QXD0119", "QXD0120",
-    "QXD0019", "QXD0037", "QXD0038", "QXD0221", "QXD0043", "QXD0046",
-    "QXD0029", "QXD0110",
-  ]
+    # Converter a coluna 'ano' para numérico e filtrar anos abaixo de 2024
+    df.loc[:, 'ano'] = pd.to_numeric(df['ano'], errors='coerce')
+    df = df[df['ano'] < 2024]
 
-  # Filtrar o dataframe
-  df_filtrado = df_filtrado[df_filtrado['codigo'].isin(codigos_filtrar)]
-  df_filtrado['codigo'] = df_filtrado['codigo'].replace('QXD0221', 'QXD0038')
-  
-  df_filtrado['resultado'] = df_filtrado['resultado'].str.replace('REP. FALTA', 'REPFALTA', regex=False)
-  
-  df_filtrado['timestamp'] = df_filtrado.apply(criar_timestamp, axis=1)
-  
-  df_filtrado = df_filtrado[['id_discente', 'codigo', 'resultado', 'timestamp']]
-  
-  nova_linha = df_filtrado.copy()
-  
-  # Ajustando o código e o timestamp da nova linha
-  nova_linha['codigo'] = nova_linha['codigo'] + '_' + nova_linha['resultado'].str.replace(' ', '', regex=False)
-  nova_linha['resultado'] = '-'  # Definindo o resultado como "-"
-  nova_linha['timestamp'] = nova_linha['timestamp'].apply(ajustar_timestamp)
+    # Lista de códigos obrigatórios
+    codigos_obrigatorios = [
+        "QXD0001", "QXD0005", "QXD0056", "QXD0103", "QXD0108", "QXD0109",
+        "QXD0006", "QXD0007", "QXD0008", "QXD0010", "QXD0013",
+        "QXD0012", "QXD0017", "QXD0040", "QXD0114", "QXD0115",
+        "QXD0011", "QXD0014", "QXD0016", "QXD0041", "QXD0116",
+        "QXD0020", "QXD0021", "QXD0025", "QXD0119", "QXD0120",
+        "QXD0019", "QXD0037", "QXD0038", "QXD0221", "QXD0043", "QXD0046",
+        "QXD0029", "QXD0110",
+    ]
 
-  # Concatenando as novas linhas ao DataFrame original
-  df_final = pd.concat([df_filtrado, nova_linha], ignore_index=True)
-  
-  df_final = df_final.drop(columns=['resultado'])
-  
-  # Filtrar os alunos com pelo menos 33 aprovações apenas uma vez
-  alunos_com_mais_33 = df_final[df_final['codigo'].str.contains("_APROVADO", na=False)].groupby('id_discente')['codigo'].nunique()
-  alunos_com_mais_33 = alunos_com_mais_33[alunos_com_mais_33 >= 33].index
+    # Filtrar apenas disciplinas obrigatórias
+    df = df[df['codigo'].isin(codigos_obrigatorios)]
 
-  # Adicionar 'verificador' para cada aluno
-  verificador_linhas = []
-  for id_discente in alunos_com_mais_33:
-    # Encontrar a última data de aprovação para o aluno
-    ultima_data = df_final[(df_final['id_discente'] == id_discente) & (df_final['codigo'].str.endswith('_APROVADO'))]['timestamp'].max()
+    # Substituir código 'QXD0221' por 'QXD0038'
+    df['codigo'] = df['codigo'].replace('QXD0221', 'QXD0038')
 
-    # Adicionar 1 dia à data
-    nova_data = adicionar_um_dia(ultima_data)
+    # Ajustar resultados
+    df['resultado'] = df['resultado'].str.replace('REP. FALTA', 'REPFALTA', regex=False)
 
-    # Criar uma nova linha
-    verificador_linhas.append({
-      'id_discente': id_discente,
-      'codigo': 'verificador',
-      'timestamp': nova_data
-    })
+    # Criar timestamps no formato 'dd/mm/yyyy'
+    df['timestamp'] = df.apply(lambda row: f"01/{'02' if row['periodo'] == 1 else '08'}/{row['ano']}", axis=1)
 
-  # Adicionar todas as novas linhas de uma vez para evitar duplicidades
-  df_verificadores = pd.DataFrame(verificador_linhas)
-  df_final = pd.concat([df_final, df_verificadores], ignore_index=True)
-  
-  # ----------------
-  # Garantir que o timestamp é datetime
-  df_final['timestamp'] = pd.to_datetime(df_final['timestamp'], format="%d/%m/%Y", errors='coerce')
+    # Selecionar colunas relevantes
+    df = df[['id_discente', 'codigo', 'resultado', 'timestamp']]
 
-  # Garantir que apenas uma atividade "Iniciou" é adicionada por aluno
-  novas_linhas = []
+    # Ajustar timestamps para junho e dezembro
+    def ajustar_timestamp(ts):
+        data = datetime.strptime(ts, "%d/%m/%Y")
+        return data.replace(month=6 if data.month == 2 else 12).strftime("%d/%m/%Y")
 
-  for id_discente, group in df_final.groupby('id_discente'):
-    # Ordenar as atividades do aluno pelo timestamp
-    group = group.sort_values(by='timestamp', ascending=True)
+    # Criar nova linha com códigos ajustados
+    df_extra = df.copy()
+    df_extra['codigo'] = df_extra['codigo'] + '_' + df_extra['resultado'].str.replace(' ', '', regex=False)
+    df_extra['resultado'] = '-'
+    df_extra['timestamp'] = df_extra['timestamp'].apply(ajustar_timestamp)
 
-    # Data da primeira atividade do aluno
-    primeira_data = group.iloc[0]['timestamp']
+    # Concatenar novas linhas e remover 'resultado'
+    df_final = pd.concat([df, df_extra], ignore_index=True).drop(columns=['resultado'])
 
-    # Ajustar a data para 'um mês antes', sem ultrapassar o início do mesmo ano
-    iniciou_data = (
-      primeira_data - pd.DateOffset(months=1)
-      if primeira_data.month > 1 else
-      primeira_data.replace(month=1, day=1)
-    )
+    # Função para adicionar um dia a uma data
+    df_final['timestamp'] = pd.to_datetime(df_final['timestamp'], errors='coerce')
 
-    # Adicionar nova linha para a atividade "Iniciou"
-    novas_linhas.append({'id_discente': id_discente, 'codigo': 'Iniciou', 'timestamp': iniciou_data})
+    # Filtrar alunos com pelo menos 33 aprovações
+    alunos_aprovados = df_final[df_final['codigo'].str.contains("_APROVADO", na=False)]
+    alunos_com_mais_33 = alunos_aprovados.groupby('id_discente')['codigo'].nunique()
+    alunos_com_mais_33 = alunos_com_mais_33[alunos_com_mais_33 >= 33].index
 
-  # Adicionar as novas linhas ao DataFrame
-  df_novas_linhas = pd.DataFrame(novas_linhas)
-  df_final = pd.concat([df_final, df_novas_linhas], ignore_index=True)
+    # Criar eventos 'Verificador'
+    df_verificadores = pd.DataFrame([
+        {'id_discente': id_discente, 'codigo': 'verificador', 'timestamp': df_final.loc[
+            (df_final['id_discente'] == id_discente) & 
+            (df_final['codigo'].str.endswith('_APROVADO')), 'timestamp'].max() + pd.Timedelta(days=1)}
+        for id_discente in alunos_com_mais_33
+    ])
 
-  # Ordenar novamente
-  df_final = df_final.sort_values(by=['id_discente', 'timestamp']).reset_index(drop=True)
-  
-  df_final['timestamp'] = pd.to_datetime(df_final['timestamp'], format='%d/%m/%Y')
+    df_final = pd.concat([df_final, df_verificadores], ignore_index=True).sort_values(by='timestamp').reset_index(drop=True)
 
-  return df_final
+    # Criar evento "Iniciou" para cada aluno
+    df_iniciou = pd.DataFrame([
+        {'id_discente': id_discente, 'codigo': 'Iniciou', 'timestamp': group.iloc[0]['timestamp'] - pd.DateOffset(months=1) if group.iloc[0]['timestamp'].month > 1 else group.iloc[0]['timestamp'].replace(month=1, day=1)}
+        for id_discente, group in df_final.groupby('id_discente')
+    ])
+
+    df_final = pd.concat([df_final, df_iniciou], ignore_index=True).sort_values(by=['id_discente', 'timestamp']).reset_index(drop=True)
+
+    # Renomear coluna para 'activity'
+    df_final = df_final.rename(columns={'codigo': 'activity'})
+
+    return df_final
