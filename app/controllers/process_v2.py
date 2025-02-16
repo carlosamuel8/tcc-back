@@ -95,3 +95,14 @@ def generate_process_mining_barras(selecao, tipo_visualizacao):
     return send_file(img_path, mimetype='image/png')
   
   return "Seleção inválida. Deve ser um intervalo de anos (tuple/list)."
+
+def generate_process_mining_pizza(selecao, tipo_visualizacao):
+  if isinstance(selecao, (tuple, list)) and len(selecao) == 2:
+    faixa = list(selecao) 
+    image_name = executar_replay(faixa, tipo_visualizacao)
+
+    img_path = f'images/{image_name}'
+
+    return send_file(img_path, mimetype='image/png')
+  
+  return "Seleção inválida. Deve ser um intervalo de anos (tuple/list)."

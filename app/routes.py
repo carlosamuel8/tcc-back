@@ -1,7 +1,7 @@
 from flask import request
 from app import server
 
-from app.controllers.process_v2 import generate_image, controller_tabelas, generate_process_mining_fluxograma, generate_process_mining_petrinet, generate_process_mining_barras
+from app.controllers.process_v2 import generate_image, controller_tabelas, generate_process_mining_fluxograma, generate_process_mining_petrinet, generate_process_mining_barras, generate_process_mining_pizza
 
 @server.route("/")
 def index():
@@ -32,20 +32,6 @@ def analise_turmas():
   
   return controller_tabelas(selecao)
   
-
-# fazer para a aba de mineração de processos que vai retornar uma imagem
-# @server.route('/v2/visualizacao/image2', methods=['GET'])
-# def mineracao_processos():
-#   selecao1 = request.args.get('selecao')
-#   selecao2 = request.args.get('selecao2')
-
-#   if selecao2:
-#     selecao = (int(selecao1), int(selecao2))
-#   else:
-#     selecao = selecao1
-
-#   return generate_process_mining(selecao)
-
 @server.route('/v2/visualizacao/fluxograma', methods=['GET'])
 def mineracao_processos_fluxograma_rota():
   selecao1 = request.args.get('selecao')
@@ -85,3 +71,14 @@ def mineracao_processos_barras_rota():
 
   return generate_process_mining_barras(selecao, 'barras')
 
+@server.route('/v2/visualizacao/pizza', methods=['GET'])
+def mineracao_processos_pizza_rota():
+  selecao1 = request.args.get('selecao')
+  selecao2 = request.args.get('selecao2')
+
+  if selecao2:
+    selecao = (int(selecao1), int(selecao2))
+  else:
+    selecao = selecao1
+
+  return generate_process_mining_pizza(selecao, 'pizza')

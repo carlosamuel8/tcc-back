@@ -56,6 +56,26 @@ codigo_para_nome = {
 }
 
 
+dados = {
+    "Área de Conhecimento": [
+        "Formação Básica em Ciência da Computação",
+        "Formação Básica em Matemática",
+        "Formação Complementar e Humanística",
+        "Formação Tecnológica em Sistemas Operacionais e Redes de Computadores",
+        "Formação Tecnológica em Ciência da Computação",
+        "Formação Tecnológica em Engenharia de Software",
+    ],
+    "Disciplina": [
+        ["QXD0001", "QXD0108", "QXD0005", "QXD0007", "QXD0010", "QXD0114", "QXD0115", "QXD0040", "QXD0016", "QXD0041", "QXD0020", "QXD0046"],
+        ["QXD0056", "QXD0109", "QXD0008", "QXD0006", "QXD0017", "QXD0012", "QXD0116"],
+        ["QXD0103", "QXD0029"],
+        ["QXD0013", "QXD0021", "QXD0043"],
+        ["QXD0011", "QXD0119", "QXD0120", "QXD0025", "QXD0037"],
+        ["QXD0014", "QXD0019", "QXD0038"],
+    ]
+}
+
+
 # Carregar o log de eventos
 df_final = pd.read_csv('./data/logfinal.csv')
 df_final['timestamp'] = pd.to_datetime(
@@ -238,6 +258,7 @@ def visualizar_fluxograma_tokens(
     return nome_arquivo
 
 
+
 def consolidar_tokens_por_disciplina(petri_net, reached_marking_result):
     """
     Consolida os tokens em lugares intermediários entre as transições QXD001 -> QXD001_APROVADO.
@@ -266,6 +287,105 @@ def consolidar_tokens_por_disciplina(petri_net, reached_marking_result):
 
     return dict(tokens_por_disciplina)
 
+
+def calcular_media_tokens_por_area(dados, tokens_por_disciplina):
+    """
+    Calcula a média de tokens por disciplina para cada área de conhecimento.
+
+    :param dados: Dicionário com as áreas de conhecimento e suas disciplinas.
+    :param tokens_por_disciplina: Dicionário com os tokens por disciplina.
+    :return: Dicionário com a média de tokens por área de conhecimento.
+    """
+    tokens_por_area = defaultdict(int)
+    num_disciplinas_por_area = defaultdict(int)
+
+    # Mapear cada disciplina para sua área de conhecimento e contar o número de disciplinas por área
+    for area, disciplinas in zip(dados["Área de Conhecimento"], dados["Disciplina"]):
+        num_disciplinas_por_area[area] = len(disciplinas)
+        for disciplina in disciplinas:
+            if disciplina in tokens_por_disciplina:
+                tokens_por_area[area] += tokens_por_disciplina[disciplina]
+
+    # Calcular a média de tokens por disciplina para cada área
+    media_tokens_por_area = {}
+    for area in tokens_por_area:
+        media_tokens_por_area[area] = tokens_por_area[area] / num_disciplinas_por_area[area]
+
+    return media_tokens_por_area
+
+def gerar_grafico_pizza(media_tokens_por_area):
+    """
+    Gera um gráfico de pizza com a distribuição de tokens por área de conhecimento com base na média.
+    As legendas são exibidas embaixo do gráfico.
+
+    :param media_tokens_por_area: Dicionário com a média de tokens por área de conhecimento.
+    """
+    areas = list(media_tokens_por_area.keys())
+    medias = list(media_tokens_por_area.values())
+
+    # Criar o gráfico de pizza
+    plt.figure(figsize=(10, 8))
+    wedges, texts, autotexts = plt.pie(
+        medias,
+        labels=None,  # Remover rótulos diretamente no gráfico
+        autopct='%1.1f%%',
+        startangle=140,
+        colors=plt.cm.Paired.colors,
+        pctdistance=0.85,  # Ajustar a distância dos percentuais
+    )
+
+    # Adicionar legendas embaixo do gráfico
+    plt.legend(
+        wedges,
+        areas,
+        title="Áreas de Conhecimento",
+        loc="upper center",  # Centralizar a legenda acima
+        bbox_to_anchor=(0.5, -0.05),  # Posicionar embaixo do gráfico
+        ncol=1,  # Número de colunas para organizar as legendas
+    )
+
+    # Ajustar layout para evitar cortes
+    plt.tight_layout()
+
+    nome_arquivo = "grafico_pizza.png"
+
+    plt.savefig('app/images/{}'.format(nome_arquivo))
+
+    return nome_arquivo
+
+
+def plot_comparacao_metricas(df_formados, df_nao_formados, metricas, titulos):
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    cores = ["blue", "red"]
+
+    for i, ax in enumerate(axes.flatten()):
+        # Calcula as médias
+        media_formados = df_formados[metricas[i]].mean()
+        media_nao_formados = df_nao_formados[metricas[i]].mean()
+
+        # Cria as barras
+        barras = ax.bar(["Formados", "Não Formados"],
+                         [media_formados, media_nao_formados],
+                         color=cores)
+        
+        # Adiciona os valores das médias nas barras
+        for barra in barras:
+            height = barra.get_height()
+            ax.text(barra.get_x() + barra.get_width() / 2., height,
+                    f'{height:.2f}',  # Formata o valor com 2 casas decimais
+                    ha='center', va='bottom', fontsize=10)
+
+        ax.set_title(titulos[i])
+        ax.set_ylabel("Valor")
+
+    plt.tight_layout()  # Ajusta o layout para evitar sobreposição
+    nome_arquivo = "comparacao_metricas.png"
+
+    plt.savefig('app/images/{}'.format(nome_arquivo))
+
+    return nome_arquivo
+
+
 def generate_process_mining_grafico_barra(replayed_traces):
     metricas = ["trace_fitness", "missing_tokens", "consumed_tokens", "remaining_tokens"]
     titulos = ["Média do Trace Fitness", "Média de Missing Tokens", "Média de Consumed Tokens", "Média de Remaining Tokens"]
@@ -291,33 +411,9 @@ def generate_process_mining_grafico_barra(replayed_traces):
     formados = df_traces[df_traces['trace_type'] == 'Aluno Formado']
     nao_formados = df_traces[df_traces['trace_type'] == 'Aluno Não Formado']
 
-    # Calcular estatísticas descritivas para cada grupo
-    estatisticas_formados = formados.describe()
-    estatisticas_nao_formados = nao_formados.describe()
+    img = plot_comparacao_metricas(formados, nao_formados, metricas, titulos)
 
-    
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    cores = ["blue", "red"]
-
-    for i, ax in enumerate(axes.flatten()):
-        ax.bar(["Formados", "Não Formados"],
-            [estatisticas_formados[metricas[i]].mean(), estatisticas_nao_formados[metricas[i]].mean()],
-            color=cores)
-        ax.set_title(titulos[i])
-        ax.set_ylabel("Valor")
-
-    plt.tight_layout()
-    # plt.show()
-
-    # Definir as métricas e títulos
-    metricas = ["trace_fitness", "missing_tokens", "consumed_tokens", "remaining_tokens"]
-    titulos = ["Média do Trace Fitness", "Média de Missing Tokens", "Média de Consumed Tokens", "Média de Remaining Tokens"]
-
-    nome_arquivo = "grafico_barras.png"
-
-    plt.savefig('app/images/{}'.format(nome_arquivo))
-    print("salvooou")
-    return nome_arquivo
+    return img
 
 
 
@@ -333,21 +429,16 @@ def executar_replay(faixa, tipo_visualizacao):
     ].copy()
 
     # Transformar o df em log de eventos
-    dataframelog = pm4py.format_dataframe(
-        df_filtrado, case_id='id_discente', activity_key='codigo', timestamp_key='timestamp')
+    dataframelog = pm4py.format_dataframe(df_filtrado, case_id='id_discente', activity_key='codigo', timestamp_key='timestamp')
 
     # Fazer o replay
-    replayed_traces = token_replay.apply(
-        dataframelog, netCC, initial_marking, final_marking)
-
-
+    replayed_traces = token_replay.apply(dataframelog, netCC, initial_marking, final_marking)
 
     # Prepaar os tokens
     result = consolidate_reached_markings(replayed_traces)
 
     # Consolidar tokens por disciplina
-    tokens_por_disciplina = consolidar_tokens_por_disciplina(
-        petri_net=netCC, reached_marking_result=result)
+    tokens_por_disciplina = consolidar_tokens_por_disciplina(petri_net=netCC, reached_marking_result=result)
 
     if tipo_visualizacao == "barras":
         # Gerar o gráfico de barras
@@ -375,5 +466,12 @@ def executar_replay(faixa, tipo_visualizacao):
         )
 
         return nome_arquivo2
+    
+    elif tipo_visualizacao == "pizza":
+        media_tokens_por_area = calcular_media_tokens_por_area(dados, tokens_por_disciplina)
+        nome_arquivo3 = gerar_grafico_pizza(media_tokens_por_area)
+
+        return nome_arquivo3
+
     else:
         raise ValueError("Tipo de visualização inválido. Deve ser 'petrinet' ou 'fluxograma'.")
