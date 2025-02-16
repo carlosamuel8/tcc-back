@@ -266,6 +266,61 @@ def consolidar_tokens_por_disciplina(petri_net, reached_marking_result):
 
     return dict(tokens_por_disciplina)
 
+def generate_process_mining_grafico_barra(replayed_traces):
+    metricas = ["trace_fitness", "missing_tokens", "consumed_tokens", "remaining_tokens"]
+    titulos = ["Média do Trace Fitness", "Média de Missing Tokens", "Média de Consumed Tokens", "Média de Remaining Tokens"]
+
+    traces_results = []
+
+    for trace_result in replayed_traces:
+        # Verificar se o aluno se formou (presença da transição 'verificador' nas transições ativadas)
+        aluno_formado = any(transition.label == 'verificador' for transition in trace_result['activated_transitions'])
+
+        traces_results.append({
+            'trace_type': 'Aluno Formado' if aluno_formado else 'Aluno Não Formado',
+            'trace_fitness': trace_result['trace_fitness'],
+            'missing_tokens': trace_result['missing_tokens'],
+            'consumed_tokens': trace_result['consumed_tokens'],
+            'remaining_tokens': trace_result['remaining_tokens'],
+            'produced_tokens': trace_result['produced_tokens']
+        })
+
+    df_traces = pd.DataFrame(traces_results)
+
+    # Separar os dados em dois grupos
+    formados = df_traces[df_traces['trace_type'] == 'Aluno Formado']
+    nao_formados = df_traces[df_traces['trace_type'] == 'Aluno Não Formado']
+
+    # Calcular estatísticas descritivas para cada grupo
+    estatisticas_formados = formados.describe()
+    estatisticas_nao_formados = nao_formados.describe()
+
+    
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    cores = ["blue", "red"]
+
+    for i, ax in enumerate(axes.flatten()):
+        ax.bar(["Formados", "Não Formados"],
+            [estatisticas_formados[metricas[i]].mean(), estatisticas_nao_formados[metricas[i]].mean()],
+            color=cores)
+        ax.set_title(titulos[i])
+        ax.set_ylabel("Valor")
+
+    plt.tight_layout()
+    # plt.show()
+
+    # Definir as métricas e títulos
+    metricas = ["trace_fitness", "missing_tokens", "consumed_tokens", "remaining_tokens"]
+    titulos = ["Média do Trace Fitness", "Média de Missing Tokens", "Média de Consumed Tokens", "Média de Remaining Tokens"]
+
+    nome_arquivo = "grafico_barras.png"
+
+    plt.savefig('app/images/{}'.format(nome_arquivo))
+    print("salvooou")
+    return nome_arquivo
+
+
+
 
 def executar_replay(faixa, tipo_visualizacao):
     print(f"Executando replay para a faixa de anos: {faixa}")
@@ -285,6 +340,8 @@ def executar_replay(faixa, tipo_visualizacao):
     replayed_traces = token_replay.apply(
         dataframelog, netCC, initial_marking, final_marking)
 
+
+
     # Prepaar os tokens
     result = consolidate_reached_markings(replayed_traces)
 
@@ -292,6 +349,11 @@ def executar_replay(faixa, tipo_visualizacao):
     tokens_por_disciplina = consolidar_tokens_por_disciplina(
         petri_net=netCC, reached_marking_result=result)
 
+    if tipo_visualizacao == "barras":
+        # Gerar o gráfico de barras
+        nome_arquivo = generate_process_mining_grafico_barra(replayed_traces)
+
+        return nome_arquivo
 
     if tipo_visualizacao == "petrinet":
         # Desenhar a rede de petri com a quantidade de tokens
@@ -314,4 +376,4 @@ def executar_replay(faixa, tipo_visualizacao):
 
         return nome_arquivo2
     else:
-        raise ValueError("Tipo de visualização inválido. Deve ser 'heatmap' ou 'fluxograma'.")
+        raise ValueError("Tipo de visualização inválido. Deve ser 'petrinet' ou 'fluxograma'.")

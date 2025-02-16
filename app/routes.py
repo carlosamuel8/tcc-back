@@ -1,7 +1,7 @@
 from flask import request
 from app import server
 
-from app.controllers.process_v2 import generate_image, controller_tabelas, generate_process_mining_fluxograma, generate_process_mining_petrinet
+from app.controllers.process_v2 import generate_image, controller_tabelas, generate_process_mining_fluxograma, generate_process_mining_petrinet, generate_process_mining_barras
 
 @server.route("/")
 def index():
@@ -71,3 +71,17 @@ def mineracao_processos_petrinet_rota():
     selecao = selecao1
 
   return generate_process_mining_petrinet(selecao, 'petrinet')
+
+
+@server.route('/v2/visualizacao/barras', methods=['GET'])
+def mineracao_processos_barras_rota():
+  selecao1 = request.args.get('selecao')
+  selecao2 = request.args.get('selecao2')
+
+  if selecao2:
+    selecao = (int(selecao1), int(selecao2))
+  else:
+    selecao = selecao1
+
+  return generate_process_mining_barras(selecao, 'barras')
+
